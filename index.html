@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transisi Energi Angin Belanda: Analisis & Data</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Font (Google Fonts: Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Configuration & Styling -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FAFAF9; /* Warm neutral background (Stone-50) */
+            color: #1C1917; /* Stone-900 */
+        }
+
+        /* Chart Container Styling - MANDATORY REQUIREMENT */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px; /* Max width constraint */
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px; /* Base height */
+            max-height: 400px; /* Max height constraint */
+        }
+
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 280px; /* Smaller height for mobile */
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #A8A29E;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #78716C;
+        }
+
+        /* Transitions */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .nav-item.active {
+            border-bottom: 3px solid #0F766E; /* Teal-700 */
+            color: #0F766E;
+            font-weight: 700;
+        }
+    </style>
+
+    <!-- Placeholder Comments -->
+    <!-- Chosen Palette: Warm Neutrals (Stone) with Deep Teal (Primary) and Amber (Accent). Minimalistic and harmonious. -->
+    
+    <!-- Application Structure Plan: 
+         Designed as a Single-Page Application (SPA) with a Dashboard layout.
+         1. Hero Section: Sets the context.
+         2. Tabbed Navigation: Allows users to switch between 'Mengapa' (Drivers), 'Data & Tren' (Quantitative), and 'Masa Depan' (Roadmap). This prevents information overload.
+         3. Dynamic Content Area: 
+            - 'Drivers' uses interactive cards to explain qualitative reasons.
+            - 'Data' uses Chart.js for visualization of capacity and mix.
+            - 'Roadmap' uses a vertical timeline layout.
+         4. Interaction: Users can toggle data views (Onshore vs Offshore), hover for details, and filter timeframes.
+         Why this structure? It separates the qualitative "Why" from the quantitative "What" and the strategic "When", allowing users to build a mental model step-by-step.
+    -->
+
+    <!-- Visualization & Content Choices:
+         1. Growth Chart (Line): Goals -> Inform & Change. Shows the trajectory of wind capacity. Interaction -> Hover for exact GW values.
+         2. Energy Mix (Doughnut): Goal -> Compare. Shows the ratio of Onshore vs Offshore. Interaction -> Segment click to update context text.
+         3. Reason Cards: Goal -> Inform. Simple, digestible chunks of text instead of long paragraphs.
+         4. Roadmap Timeline: Goal -> Organize. Visualizes the path to 2050 targets.
+         Confirming NO SVG graphics used directly. NO Mermaid JS used. All icons are text-based or CSS shapes.
+    -->
+
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="flex flex-col min-h-screen text-stone-800">
+
+    <!-- Header / Hero -->
+    <header class="bg-white border-b border-stone-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">💨</span>
+                    <h1 class="text-xl font-bold tracking-tight text-teal-800">WindNetherlands <span class="font-light text-stone-500">| Monitor Transisi Energi</span></h1>
+                </div>
+                <!-- Desktop Nav -->
+                <nav class="hidden md:flex space-x-8">
+                    <button onclick="app.navigate('reasons')" id="nav-reasons" class="nav-item px-3 py-2 text-sm font-medium text-stone-500 hover:text-stone-700 transition-colors">Latar Belakang</button>
+                    <button onclick="app.navigate('data')" id="nav-data" class="nav-item active px-3 py-2 text-sm font-medium text-stone-500 hover:text-stone-700 transition-colors">Data & Statistik</button>
+                    <button onclick="app.navigate('future')" id="nav-future" class="nav-item px-3 py-2 text-sm font-medium text-stone-500 hover:text-stone-700 transition-colors">Peta Jalan 2050</button>
+                </nav>
+                <!-- Mobile Menu Button (Simplified for this demo) -->
+                <div class="md:hidden">
+                    <button onclick="app.toggleMobileMenu()" class="text-stone-500 hover:text-teal-700 font-bold p-2">Menu ☰</button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Nav Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-stone-50 border-t border-stone-200">
+            <button onclick="app.navigate('reasons')" class="block w-full text-left px-4 py-3 text-sm font-medium text-stone-600 hover:bg-stone-100">Latar Belakang</button>
+            <button onclick="app.navigate('data')" class="block w-full text-left px-4 py-3 text-sm font-medium text-stone-600 hover:bg-stone-100">Data & Statistik</button>
+            <button onclick="app.navigate('future')" class="block w-full text-left px-4 py-3 text-sm font-medium text-stone-600 hover:bg-stone-100">Peta Jalan 2050</button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- SECTION: CONTEXT/INTRO -->
+        <div class="mb-8 p-6 bg-white rounded-xl shadow-sm border border-stone-100">
+            <h2 class="text-2xl font-semibold text-stone-800 mb-2">Mengapa Belanda Beralih ke Angin?</h2>
+            <p class="text-stone-600 leading-relaxed">
+                Belanda sedang dalam transformasi besar-besaran meninggalkan bahan bakar fosil (khususnya gas alam dari ladang Groningen) menuju energi terbarukan. 
+                Aplikasi ini menyajikan data utama dan alasan strategis di balik keputusan nasional ini, berfokus pada potensi angin Laut Utara yang masif.
+                Gunakan tab di atas untuk menjelajahi wawasan kualitatif, data keras, dan target masa depan.
+            </p>
+        </div>
+
+        <!-- VIEW: REASONS (Qualitative) -->
+        <div id="view-reasons" class="view-section hidden fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Card 1 -->
+                <div class="bg-white p-6 rounded-lg border border-stone-200 hover:shadow-md transition-shadow cursor-pointer group" onclick="app.highlightReason(1)">
+                    <div class="text-3xl mb-4 bg-teal-50 w-12 h-12 flex items-center justify-center rounded-full text-teal-600">🌍</div>
+                    <h3 class="text-lg font-bold text-stone-800 mb-2 group-hover:text-teal-700">Komitmen Iklim</h3>
+                    <p class="text-stone-600 text-sm">Target UE dan Kesepakatan Iklim Nasional mewajibkan pengurangan emisi CO2 sebesar 49% pada tahun 2030 dibandingkan level 1990.</p>
+                </div>
+                <!-- Card 2 -->
+                <div class="bg-white p-6 rounded-lg border border-stone-200 hover:shadow-md transition-shadow cursor-pointer group" onclick="app.highlightReason(2)">
+                    <div class="text-3xl mb-4 bg-amber-50 w-12 h-12 flex items-center justify-center rounded-full text-amber-600">🛑</div>
+                    <h3 class="text-lg font-bold text-stone-800 mb-2 group-hover:text-amber-700">Penutupan Groningen</h3>
+                    <p class="text-stone-600 text-sm">Ladang gas terbesar di Eropa di Groningen ditutup karena risiko gempa bumi, memaksa pencarian sumber alternatif yang mendesak.</p>
+                </div>
+                <!-- Card 3 -->
+                <div class="bg-white p-6 rounded-lg border border-stone-200 hover:shadow-md transition-shadow cursor-pointer group" onclick="app.highlightReason(3)">
+                    <div class="text-3xl mb-4 bg-blue-50 w-12 h-12 flex items-center justify-center rounded-full text-blue-600">🌊</div>
+                    <h3 class="text-lg font-bold text-stone-800 mb-2 group-hover:text-blue-700">Geografi Ideal</h3>
+                    <p class="text-stone-600 text-sm">Laut Utara yang dangkal dan berangin kencang menawarkan salah satu lokasi terbaik di dunia untuk ladang angin lepas pantai (offshore) yang efisien.</p>
+                </div>
+                <!-- Card 4 -->
+                <div class="bg-white p-6 rounded-lg border border-stone-200 hover:shadow-md transition-shadow cursor-pointer group" onclick="app.highlightReason(4)">
+                    <div class="text-3xl mb-4 bg-purple-50 w-12 h-12 flex items-center justify-center rounded-full text-purple-600">🛡️</div>
+                    <h3 class="text-lg font-bold text-stone-800 mb-2 group-hover:text-purple-700">Kemandirian Energi</h3>
+                    <p class="text-stone-600 text-sm">Mengurangi ketergantungan pada impor energi asing (minyak & gas) untuk meningkatkan keamanan nasional dan stabilitas harga.</p>
+                </div>
+                <!-- Interactive Detail Box -->
+                <div class="col-span-1 md:col-span-2 lg:col-span-2 bg-stone-100 p-6 rounded-lg border-l-4 border-teal-600 flex flex-col justify-center">
+                    <h4 class="font-bold text-teal-800 mb-2">Detail Analisis: <span id="reason-detail-title">Pilih kartu untuk info lebih lanjut</span></h4>
+                    <p id="reason-detail-text" class="text-stone-700 text-sm">Klik salah satu kartu di atas untuk melihat detail mendalam tentang faktor pendorong spesifik tersebut.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: DATA (Quantitative) -->
+        <div id="view-data" class="view-section fade-in">
+            <!-- Stats Row -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white p-4 rounded shadow-sm border-t-4 border-teal-500 text-center">
+                    <div class="text-stone-500 text-xs uppercase font-bold tracking-wider">Total Kapasitas (2023)</div>
+                    <div class="text-3xl font-bold text-stone-800 mt-1">11.5 <span class="text-sm font-normal text-stone-400">GW</span></div>
+                </div>
+                <div class="bg-white p-4 rounded shadow-sm border-t-4 border-amber-500 text-center">
+                    <div class="text-stone-500 text-xs uppercase font-bold tracking-wider">Target 2030</div>
+                    <div class="text-3xl font-bold text-stone-800 mt-1">21.0 <span class="text-sm font-normal text-stone-400">GW+</span></div>
+                </div>
+                <div class="bg-white p-4 rounded shadow-sm border-t-4 border-blue-500 text-center">
+                    <div class="text-stone-500 text-xs uppercase font-bold tracking-wider">Pangsa Offshore</div>
+                    <div class="text-3xl font-bold text-stone-800 mt-1">45% <span class="text-sm font-normal text-stone-400">Trend ↗</span></div>
+                </div>
+                <div class="bg-white p-4 rounded shadow-sm border-t-4 border-stone-500 text-center">
+                    <div class="text-stone-500 text-xs uppercase font-bold tracking-wider">Rumah Tangga</div>
+                    <div class="text-3xl font-bold text-stone-800 mt-1">~8 <span class="text-sm font-normal text-stone-400">Juta</span></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Chart 1: Growth -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border border-stone-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-stone-800">Pertumbuhan Kapasitas Energi Angin (GW)</h3>
+                        <div class="bg-stone-100 rounded-lg p-1 flex text-xs">
+                            <button onclick="app.updateGrowthChart('all')" class="px-3 py-1 rounded bg-white shadow-sm text-stone-800 font-medium">Total</button>
+                            <button onclick="app.updateGrowthChart('offshore')" class="px-3 py-1 rounded hover:bg-white text-stone-500 ml-1">Offshore</button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-stone-500 mb-4">Grafik ini menunjukkan akselerasi instalasi turbin angin sejak 2015, didorong oleh proyek Laut Utara.</p>
+                    <div class="chart-container">
+                        <canvas id="growthChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Mix -->
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-stone-200 flex flex-col">
+                    <h3 class="font-bold text-stone-800 mb-2">Komposisi Onshore vs Offshore</h3>
+                    <p class="text-xs text-stone-500 mb-4">Pergeseran strategis menuju pembangkit listrik lepas pantai yang lebih besar.</p>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="mixChart"></canvas>
+                    </div>
+                    <div class="mt-4 bg-stone-50 p-3 rounded text-sm text-stone-600 border border-stone-100">
+                        <strong class="block text-teal-700 mb-1">Analisis Singkat:</strong>
+                        <span id="mix-analysis">Meskipun angin darat (Onshore) mendominasi sejarah, angin laut (Offshore) tumbuh lebih cepat karena faktor efisiensi dan ruang.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: FUTURE (Roadmap) -->
+        <div id="view-future" class="view-section hidden fade-in">
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white p-8 rounded-lg shadow-sm border border-stone-200">
+                    <h3 class="text-xl font-bold text-stone-800 mb-6 text-center">Peta Jalan Menuju Net Zero 2050</h3>
+                    
+                    <div class="relative border-l-4 border-stone-200 ml-6 md:ml-12 space-y-12">
+                        <!-- Milestone 1 -->
+                        <div class="relative pl-8 md:pl-12">
+                            <div class="absolute -left-3.5 bg-teal-600 h-6 w-6 rounded-full border-4 border-white shadow"></div>
+                            <div class="bg-stone-50 p-5 rounded-lg border border-stone-100 hover:border-teal-300 transition-colors">
+                                <span class="inline-block px-2 py-1 bg-teal-100 text-teal-800 text-xs font-bold rounded mb-2">Sekarang - 2025</span>
+                                <h4 class="text-lg font-bold text-stone-800">Ekspansi Zona Laut Utara</h4>
+                                <p class="text-stone-600 text-sm mt-1">Penyelesaian area angin Hollandse Kust (Zuid, Noord, West). Fokus pada pengurangan biaya lelang dan integrasi grid.</p>
+                            </div>
+                        </div>
+
+                        <!-- Milestone 2 -->
+                        <div class="relative pl-8 md:pl-12">
+                            <div class="absolute -left-3.5 bg-amber-500 h-6 w-6 rounded-full border-4 border-white shadow"></div>
+                            <div class="bg-stone-50 p-5 rounded-lg border border-stone-100 hover:border-amber-300 transition-colors">
+                                <span class="inline-block px-2 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded mb-2">Target 2030</span>
+                                <h4 class="text-lg font-bold text-stone-800">21 GW Kapasitas Offshore</h4>
+                                <p class="text-stone-600 text-sm mt-1">Energi angin diproyeksikan memenuhi 75% kebutuhan listrik rumah tangga saat ini. Integrasi dengan produksi Hidrogen Hijau dimulai.</p>
+                            </div>
+                        </div>
+
+                        <!-- Milestone 3 -->
+                        <div class="relative pl-8 md:pl-12">
+                            <div class="absolute -left-3.5 bg-stone-400 h-6 w-6 rounded-full border-4 border-white shadow"></div>
+                            <div class="bg-stone-50 p-5 rounded-lg border border-stone-100 hover:border-stone-400 transition-colors">
+                                <span class="inline-block px-2 py-1 bg-stone-200 text-stone-800 text-xs font-bold rounded mb-2">Visi 2050</span>
+                                <h4 class="text-lg font-bold text-stone-800">Sistem Energi Netral Karbon</h4>
+                                <p class="text-stone-600 text-sm mt-1">Angin Laut Utara berfungsi sebagai "Pembangkit Listrik Hijau" Eropa. Pulau energi buatan dan interkoneksi internasional beroperasi penuh.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 p-4 bg-teal-50 rounded text-teal-900 text-sm text-center">
+                        💡 <strong>Tantangan Utama:</strong> Ekologi laut, kemacetan jaringan listrik (grid congestion), dan penyimpanan energi.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-stone-100 border-t border-stone-200 py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-stone-500 text-sm">© 2024 Analisis Energi Belanda. Data disintesis dari laporan kebijakan publik dan statistik energi nasional.</p>
+            <div class="mt-2 flex justify-center space-x-4 text-xs text-stone-400">
+                <span>Sumber: CBS (Statistik Belanda)</span>
+                <span>•</span>
+                <span>Rijksoverheid (Pemerintah Pusat)</span>
+                <span>•</span>
+                <span>WindEurope</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const app = {
+            state: {
+                currentView: 'data', // Default view
+                chartData: {
+                    years: ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023'],
+                    total: [3.4, 4.3, 4.2, 4.4, 4.5, 6.6, 7.8, 8.9, 11.5],
+                    offshoreOnly: [0.6, 1.0, 1.1, 1.1, 1.1, 2.5, 3.0, 3.2, 4.7]
+                }
+            },
+
+            // Charts instances
+            charts: {},
+
+            init: function() {
+                this.renderCharts();
+                this.setupNavigation();
+                
+                // Initial highlighting
+                this.highlightReason(1);
+            },
+
+            setupNavigation: function() {
+                // Ensure initial state visual match
+                this.updateNavUI('data');
+            },
+
+            navigate: function(viewId) {
+                // Hide all sections
+                document.querySelectorAll('.view-section').forEach(el => {
+                    el.classList.add('hidden');
+                });
+                
+                // Show selected section
+                const target = document.getElementById(`view-${viewId}`);
+                if (target) {
+                    target.classList.remove('hidden');
+                }
+
+                // U
